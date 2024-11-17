@@ -4,6 +4,7 @@ local Window = Rayfield:CreateWindow({
     Name = "Duck X Hub",
     LoadingTitle = "Duck Hub Main",
     LoadingSubtitle = "by duckshogun",
+    Theme = "Light", -- Check https://docs.sirius.menu/rayfield/configuration/themes
     ConfigurationSaving = {
        Enabled = true,
        FolderName = DuckXHubM, -- Create a custom folder for your hub/game
