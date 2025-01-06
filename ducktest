@@ -4,15 +4,15 @@ local Window = Rayfield:CreateWindow({
     Name = "Duck X Hub",
     LoadingTitle = "Duck Hub Main",
     LoadingSubtitle = "by duckshogun",
-    Theme = "Light", -- Check https://docs.sirius.menu/rayfield/configuration/themes
+    Theme = "Dark", -- Check https://docs.sirius.menu/rayfield/configuration/themes
     ConfigurationSaving = {
        Enabled = true,
        FolderName = DuckXHubM, -- Create a custom folder for your hub/game
        FileName = "DuckXHub"
     },
     Discord = {
-       Enabled = false,
-       Invite = "noinvitelink", -- The Discord invite code, do not include discord.gg/. E.g. discord.gg/ABCD would be ABCD
+       Enabled = true,
+       Invite = "ekxRybWgmh", -- The Discord invite code, do not include discord.gg/. E.g. discord.gg/ABCD would be ABCD
        RememberJoins = true -- Set this to false to make them join the discord every time they load it up
     },
     KeySystem = false, -- Set this to true to use our key system
@@ -27,7 +27,7 @@ local Window = Rayfield:CreateWindow({
     }
  })
 
- local MainTab = Window:CreateTab("🏚️ Main", nil) -- Title, Image
+ local MainTab = Window:CreateTab("👨🏻‍💼 Player", nil) -- Title, Image
 
  local Slider = MainTab:CreateSlider({
     Name = "WalkSpeed",
