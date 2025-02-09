@@ -12,19 +12,22 @@ local ChestSection = MiscTab:NewSection("Auto Chest")
 local plr = game:GetService("Players").LocalPlayer
 local tweenService = game:GetService("TweenService")
 local vu = game:GetService("VirtualUser")
+local rs = game:GetService("ReplicatedStorage")
 
 _G.AutoFarm = false
 _G.AutoQuest = false
 _G.AutoChest = false
 
+-- Hàm dịch chuyển
 function teleportTo(position)
     if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-        local tween = tweenService:Create(plr.Character.HumanoidRootPart, TweenInfo.new((plr.Character.HumanoidRootPart.Position - position).magnitude / 300, Enum.EasingStyle.Linear), {CFrame = CFrame.new(position)})
+        local tween = tweenService:Create(plr.Character.HumanoidRootPart, TweenInfo.new(0.5, Enum.EasingStyle.Linear), {CFrame = CFrame.new(position)})
         tween:Play()
         wait(0.5)
     end
 end
 
+-- Hàm tấn công quái
 function attack()
     pcall(function()
         vu:Button1Down(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
@@ -33,30 +36,13 @@ function attack()
     end)
 end
 
-function autoFarm()
-    while _G.AutoFarm do
-        pcall(function()
-            local enemies = game:GetService("Workspace").Enemies:GetChildren()
-            for _, enemy in pairs(enemies) do
-                if enemy:FindFirstChild("Humanoid") and enemy.Humanoid.Health > 0 then
-                    repeat
-                        teleportTo(enemy.HumanoidRootPart.Position + Vector3.new(0, 10, 0))
-                        attack()
-                        wait(0.1)
-                    until enemy.Humanoid.Health <= 0 or not _G.AutoFarm
-                end
-            end
-        end)
-        wait(1)
-    end
-end
-
+-- Hàm lấy nhiệm vụ phù hợp với level
 function getQuest()
     local level = plr.Data.Level.Value
     local questData = {
-        [1] = {Name = "Bandit Quest", NPC = "Bandit", LevelReq = 1, Enemy = "Bandit"},
-        [10] = {Name = "Monkey Quest", NPC = "Monkey", LevelReq = 10, Enemy = "Monkey"},
-        [30] = {Name = "Pirate Quest", NPC = "Pirate", LevelReq = 30, Enemy = "Pirate"},
+        [1] = {NPC = "Bandit Quest Giver", Quest = "BanditQuest1", Enemy = "Bandit", Pos = Vector3.new(1057, 16, 1600)},
+        [10] = {NPC = "Jungle Quest Giver", Quest = "JungleQuest1", Enemy = "Monkey", Pos = Vector3.new(-1600, 36, 150)},
+        [30] = {NPC = "Pirate Quest Giver", Quest = "PirateQuest1", Enemy = "Pirate", Pos = Vector3.new(-1200, 10, 3950)},
     }
 
     local currentQuest
@@ -69,13 +55,49 @@ function getQuest()
     if currentQuest then
         local questGiver = game:GetService("Workspace").NPCs:FindFirstChild(currentQuest.NPC)
         if questGiver then
-            teleportTo(questGiver.HumanoidRootPart.Position + Vector3.new(0, 5, 0))
+            teleportTo(currentQuest.Pos)
             wait(1)
             fireproximityprompt(questGiver.HumanoidRootPart:FindFirstChildOfClass("ProximityPrompt"))
         end
     end
 end
 
+-- Auto Farm (Sửa lỗi không đánh quái)
+function autoFarm()
+    while _G.AutoFarm do
+        pcall(function()
+            local level = plr.Data.Level.Value
+            local questData = {
+                [1] = {Quest = "BanditQuest1", Enemy = "Bandit", Pos = Vector3.new(1057, 16, 1600)},
+                [10] = {Quest = "JungleQuest1", Enemy = "Monkey", Pos = Vector3.new(-1600, 36, 150)},
+                [30] = {Quest = "PirateQuest1", Enemy = "Pirate", Pos = Vector3.new(-1200, 10, 3950)},
+            }
+
+            local currentQuest
+            for reqLevel, quest in pairs(questData) do
+                if level >= reqLevel then
+                    currentQuest = quest
+                end
+            end
+
+            if currentQuest then
+                local enemies = game:GetService("Workspace").Enemies:GetChildren()
+                for _, enemy in pairs(enemies) do
+                    if enemy.Name == currentQuest.Enemy and enemy:FindFirstChild("Humanoid") and enemy.Humanoid.Health > 0 then
+                        repeat
+                            teleportTo(enemy.HumanoidRootPart.Position + Vector3.new(0, 10, 0))
+                            attack()
+                            wait(0.1)
+                        until enemy.Humanoid.Health <= 0 or not _G.AutoFarm
+                    end
+                end
+            end
+        end)
+        wait(1)
+    end
+end
+
+-- Auto Chest
 function collectChests()
     while _G.AutoChest do
         pcall(function()
@@ -91,6 +113,7 @@ function collectChests()
     end
 end
 
+-- Giao diện Auto Farm
 FarmSection:NewToggle("Auto Farm Level", "Tự động farm quái để lên cấp", function(state)
     _G.AutoFarm = state
     if state then
@@ -108,6 +131,7 @@ FarmSection:NewToggle("Auto Quest", "Tự động nhận nhiệm vụ phù hợp
     end
 end)
 
+-- Giao diện Teleport
 local locations = {
     ["Starter Island"] = Vector3.new(-655, 8, 4000),
     ["Jungle"] = Vector3.new(-1100, 10, 350),
@@ -123,6 +147,7 @@ for name, pos in pairs(locations) do
     end)
 end
 
+-- Giao diện Auto Chest
 ChestSection:NewToggle("Auto Chest", "Tự động nhặt rương trên bản đồ", function(state)
     _G.AutoChest = state
     if state then
