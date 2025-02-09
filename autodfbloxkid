@@ -11,14 +11,12 @@ local Window = Rayfield:CreateWindow({
 
 -- 📂 Tạo Tabs
 local AutoFarmTab = Window:CreateTab("Auto Farm", 4483345998)
-local AutoBossTab = Window:CreateTab("Auto Boss", 4483345998)
-local TeleportTab = Window:CreateTab("Teleport", 4483345998)
+local VisualTab = Window:CreateTab("Aura Ảo", 4483345998)
 
 -- 🔘 Biến điều khiển
 _G.AutoFarm = false
-_G.AutoBoss = false
-_G.AutoSkill = false
-_G.SelectedWeapon = "Melee" -- Đổi thành "Sword" hoặc "Gun" nếu cần
+_G.UseAura = false
+_G.SelectedWeapon = "Melee"
 
 -- 🔄 Tự động trang bị vũ khí
 function equipWeapon()
@@ -32,101 +30,35 @@ function equipWeapon()
     end
 end
 
--- ⚔️ Auto Click Đánh Quái (Dùng vũ khí)
-function autoClick()
-    while _G.AutoFarm or _G.AutoBoss do
+-- ⚔️ Auto Attack (Sử dụng dịch vụ Remote để đánh)
+function autoAttack()
+    while _G.AutoFarm do
         equipWeapon()
-        game:GetService("VirtualInputManager"):SendMouseButtonEvent(0, 0, 0, true, game, 1)
-        task.wait(0.2)
+        game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("Attack")
+        task.wait(0.1)
     end
 end
 
--- 🔥 Auto Skill (Dùng chiêu thức khi đánh)
-function autoUseSkills()
-    while _G.AutoSkill do
-        game:GetService("VirtualInputManager"):SendKeyEvent(true, "Z", false, game)
-        task.wait(1)
-        game:GetService("VirtualInputManager"):SendKeyEvent(true, "X", false, game)
-        task.wait(1)
-        game:GetService("VirtualInputManager"):SendKeyEvent(true, "C", false, game)
-        task.wait(1)
-        game:GetService("VirtualInputManager"):SendKeyEvent(true, "V", false, game)
-        task.wait(1)
-    end
-end
-
--- 🛸 Bay ổn định không nhấp nhô
-function flyStable()
-    local hrp = game.Players.LocalPlayer.Character.HumanoidRootPart
-    game:GetService("RunService").Heartbeat:Connect(function()
-        if _G.AutoFarm or _G.AutoBoss then
-            hrp.Velocity = Vector3.new(0, 0, 0)
-            hrp.CFrame = hrp.CFrame + Vector3.new(0, 20, 0)
-        end
-    end)
-end
-
--- 🚀 Hàm dịch chuyển tức thời
-function teleportTo(position)
+-- ✨ Aura Ảo (Hiệu ứng ánh sáng quanh nhân vật)
+function activateAura()
     local character = game.Players.LocalPlayer.Character
-    if character and character:FindFirstChild("HumanoidRootPart") then
-        character.HumanoidRootPart.CFrame = CFrame.new(position)
+    while _G.UseAura do
+        local aura = Instance.new("Part")
+        aura.Size = Vector3.new(5, 5, 5)
+        aura.Shape = Enum.PartType.Ball
+        aura.Material = Enum.Material.Neon
+        aura.Color = Color3.fromRGB(math.random(100,255), math.random(100,255), math.random(100,255))
+        aura.Transparency = 0.5
+        aura.Anchored = true
+        aura.CanCollide = false
+        aura.Position = character.HumanoidRootPart.Position
+        aura.Parent = game.Workspace
+        game:GetService("Debris"):AddItem(aura, 0.2) -- Xóa sau 0.2s để tạo hiệu ứng
+        task.wait(0.1)
     end
 end
 
--- 👹 Tìm Boss gần nhất
-function getNearestBoss()
-    local player = game.Players.LocalPlayer
-    local closestBoss = nil
-    local shortestDistance = math.huge
-    for _, boss in pairs(game.Workspace.Enemies:GetChildren()) do
-        if boss:FindFirstChild("HumanoidRootPart") and boss:FindFirstChild("Humanoid") and boss.Humanoid.Health > 0 then
-            local distance = (boss.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).magnitude
-            if distance < shortestDistance then
-                shortestDistance = distance
-                closestBoss = boss
-            end
-        end
-    end
-    return closestBoss
-end
-
--- 🎯 Auto Boss (Tìm & đánh boss)
-function startAutoBoss()
-    spawn(autoClick)
-    while _G.AutoBoss do
-        local boss = getNearestBoss()
-        if boss then
-            teleportTo(boss.HumanoidRootPart.Position + Vector3.new(0, 20, 0))
-            task.wait(0.1)
-        else
-            print("Không tìm thấy boss, chờ spawn...")
-            task.wait(5)
-        end
-    end
-end
-
--- 📍 Teleport đến địa điểm
-TeleportTab:CreateDropdown({
-    Name = "Chọn địa điểm",
-    Options = {"Starter Island", "Jungle", "Pirate Village", "Marine Fortress", "Sky Island"},
-    CurrentOption = "Starter Island",
-    Flag = "Teleport",
-    Callback = function(option)
-        local locations = {
-            ["Starter Island"] = Vector3.new(100, 10, 100),
-            ["Jungle"] = Vector3.new(-1500, 20, 300),
-            ["Pirate Village"] = Vector3.new(-1000, 10, -1200),
-            ["Marine Fortress"] = Vector3.new(-4000, 30, 2000),
-            ["Sky Island"] = Vector3.new(-5000, 500, -1000)
-        }
-        if locations[option] then
-            teleportTo(locations[option])
-        end
-    end
-})
-
--- 🎮 Nút bật Auto Farm
+-- 🏆 Bật/Tắt Auto Farm
 AutoFarmTab:CreateToggle({
     Name = "Auto Farm Level",
     CurrentValue = false,
@@ -134,33 +66,20 @@ AutoFarmTab:CreateToggle({
     Callback = function(value)
         _G.AutoFarm = value
         if value then
-            startAutoFarm()
+            spawn(autoAttack)
         end
     end
 })
 
--- 🎮 Nút bật Auto Boss
-AutoBossTab:CreateToggle({
-    Name = "Auto Boss",
+-- ✨ Bật/Tắt Aura Ảo
+VisualTab:CreateToggle({
+    Name = "Bật Aura Ảo",
     CurrentValue = false,
-    Flag = "AutoBoss",
+    Flag = "UseAura",
     Callback = function(value)
-        _G.AutoBoss = value
+        _G.UseAura = value
         if value then
-            startAutoBoss()
-        end
-    end
-})
-
--- 🔥 Auto Skill Toggle
-AutoFarmTab:CreateToggle({
-    Name = "Auto Skill (Z, X, C, V)",
-    CurrentValue = false,
-    Flag = "AutoSkill",
-    Callback = function(value)
-        _G.AutoSkill = value
-        if value then
-            spawn(autoUseSkills)
+            spawn(activateAura)
         end
     end
 })
