@@ -1,11 +1,16 @@
--- 🛠️ Load thư viện GUI
-local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Orion/main/source"))()
+-- 🛠️ Load thư viện Rayfield GUI
+local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
 
 -- 🌟 Tạo GUI
-local Window = OrionLib:MakeWindow({Name = "Blox Fruits Auto Farm", HidePremium = false, SaveConfig = true, ConfigFolder = "OrionTest"})
+local Window = Rayfield:CreateWindow({
+    Name = "Blox Fruits Auto Farm",
+    LoadingTitle = "Auto Farm by ChatGPT",
+    LoadingSubtitle = "Rayfield GUI",
+    ConfigurationSaving = {Enabled = false}
+})
 
--- 📂 Tạo Tab chính
-local MainTab = Window:MakeTab({Name = "Auto Farm", Icon = "rbxassetid://4483345998", PremiumOnly = false})
+-- 📂 Tạo Tab Auto Farm
+local AutoFarmTab = Window:CreateTab("Auto Farm", 4483345998)
 
 -- 🔘 Biến điều khiển
 _G.AutoFarm = false
@@ -114,9 +119,10 @@ function startAutoFarm()
 end
 
 -- 🎮 Nút bật Auto Farm
-MainTab:AddToggle({
+AutoFarmTab:CreateToggle({
     Name = "Auto Farm Level",
-    Default = false,
+    CurrentValue = false,
+    Flag = "AutoFarm",
     Callback = function(value)
         _G.AutoFarm = value
         if value then
@@ -125,5 +131,5 @@ MainTab:AddToggle({
     end
 })
 
--- ✅ Kết thúc setup GUI
-OrionLib:Init()
+-- ✅ Hoàn tất
+Rayfield:LoadConfiguration()
