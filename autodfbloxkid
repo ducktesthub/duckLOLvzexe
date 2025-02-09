@@ -1,35 +1,45 @@
--- Webhook URL của bạn
-local webhookURL = "YOUR_DISCORD_WEBHOOK_URL"
+_G.AutoFarm = true  -- Bật auto farm (true: bật, false: tắt)
 
--- Hàm để gửi tin nhắn đến Discord webhook
-local function sendToDiscord(message)
-    local http = game:GetService("HttpService")
-    local data = {
-        ["content"] = message
-    }
-    local jsonData = http:JSONEncode(data)
-    
-    http:PostAsync(webhookURL, jsonData, Enum.HttpContentType.ApplicationJson)
-end
+local player = game.Players.LocalPlayer
+local replicatedStorage = game:GetService("ReplicatedStorage")
+local tweenService = game:GetService("TweenService")
 
--- Hàm để kiểm tra và nhặt trái ác quỷ
-local function collectFruits()
-    local fruits = game.Workspace:GetChildren()
-    for _, fruit in ipairs(fruits) do
-        if fruit:IsA("Tool") and fruit.Name == "Fruit" then
-            -- Di chuyển tới trái ác quỷ và nhặt nó
-            game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = fruit.Handle.CFrame
-            wait(1)
-            fireclickdetector(fruit.ClickDetector)
-            
-            -- Gửi tin nhắn đến Discord webhook
-            sendToDiscord("Đã nhặt được trái ác quỷ: " .. fruit.Name)
-        end
+function teleportTo(position)
+    local character = player.Character
+    if character and character:FindFirstChild("HumanoidRootPart") then
+        character.HumanoidRootPart.CFrame = CFrame.new(position)
     end
 end
 
--- Lặp lại quá trình nhặt trái ác quỷ mỗi 10 giây
-while true do
-    collectFruits()
-    wait(10)
+function getNearestMob()
+    local closestMob = nil
+    local shortestDistance = math.huge
+    for _, mob in pairs(game.Workspace.Enemies:GetChildren()) do
+        if mob:FindFirstChild("HumanoidRootPart") and mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
+            local distance = (mob.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).magnitude
+            if distance < shortestDistance then
+                shortestDistance = distance
+                closestMob = mob
+            end
+        end
+    end
+    return closestMob
+end
+
+function attackMob(mob)
+    while mob and mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 and _G.AutoFarm do
+        teleportTo(mob.HumanoidRootPart.Position + Vector3.new(0, 5, 0))
+        replicatedStorage.Remotes.CommF_:InvokeServer("Combat", "Melee")
+        task.wait(0.3)  -- Giảm lag server
+    end
+end
+
+while _G.AutoFarm do
+    local mob = getNearestMob()
+    if mob then
+        attackMob(mob)
+    else
+        print("Không tìm thấy kẻ địch, chờ spawn...")
+        task.wait(1)
+    end
 end
