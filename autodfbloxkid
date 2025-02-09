@@ -2,9 +2,9 @@ _G.AutoFarm = true  -- Bật auto farm (true: bật, false: tắt)
 
 local player = game.Players.LocalPlayer
 local replicatedStorage = game:GetService("ReplicatedStorage")
-local tweenService = game:GetService("TweenService")
+local runService = game:GetService("RunService")
 
--- 🚀 Hàm dịch chuyển
+-- 🚀 Hàm dịch chuyển tức thời
 function teleportTo(position)
     local character = player.Character
     if character and character:FindFirstChild("HumanoidRootPart") then
@@ -14,7 +14,7 @@ end
 
 -- 📜 Hàm nhận nhiệm vụ tự động
 function getQuest()
-    local level = player.Data.Level.Value  -- Lấy cấp độ hiện tại của người chơi
+    local level = player.Data.Level.Value
     local questNPC = nil
     local questName = nil
 
@@ -60,17 +60,38 @@ function getNearestMob()
     return closestMob
 end
 
--- ⚔️ Hàm tấn công quái
-function attackMob(mob)
-    while mob and mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 and _G.AutoFarm do
-        -- Bay trên đầu quái để tránh bị đánh
-        teleportTo(mob.HumanoidRootPart.Position + Vector3.new(0, 20, 0))
+-- ⚔️ Auto click đánh quái
+function autoClick()
+    while _G.AutoFarm do
         replicatedStorage.Remotes.CommF_:InvokeServer("Combat", "Melee")
-        task.wait(0.3)
+        task.wait(0.2) -- Tốc độ đánh
+    end
+end
+
+-- 🛸 Bay nhanh không rơi
+function flyNoFall()
+    local character = player.Character
+    if character and character:FindFirstChild("HumanoidRootPart") then
+        local hrp = character.HumanoidRootPart
+        runService.Heartbeat:Connect(function()
+            if _G.AutoFarm then
+                hrp.Velocity = Vector3.new(0, 50, 0) -- Giữ nhân vật trên cao
+            end
+        end)
+    end
+end
+
+-- ⚔️ Đánh quái tự động + bay trên đầu quái
+function attackMob(mob)
+    flyNoFall() -- Bật chế độ bay
+    while mob and mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 and _G.AutoFarm do
+        teleportTo(mob.HumanoidRootPart.Position + Vector3.new(0, 20, 0)) -- Bay trên đầu quái
+        task.wait(0.1)
     end
 end
 
 -- 🎮 Chạy Auto Farm
+spawn(autoClick) -- Auto click đánh quái
 while _G.AutoFarm do
     getQuest()
     local mob = getNearestMob()
