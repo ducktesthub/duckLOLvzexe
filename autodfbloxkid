@@ -7,7 +7,7 @@ local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local PlaceId = game.PlaceId
 
 -- 📢 Thay webhook Discord vào đây
-local webhookURL = "YOUR_WEBHOOK_URL_HERE"
+local webhookURL = "https://discord.com/api/webhooks/1337674068643549214/7VEKBq_Q5Bpw2iBTifqaOcAS24ZCZ-jmGLO9ugLZYi_I9fhKKhjGRVaUFyJVY_6Q5Kxz"
 
 -- 🎲 Chỉ nhặt trái từ LEGEND trở lên
 local fruitRarity = {
