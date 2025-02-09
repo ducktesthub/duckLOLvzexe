@@ -9,31 +9,61 @@ local Window = Rayfield:CreateWindow({
     ConfigurationSaving = {Enabled = false}
 })
 
--- 📂 Tạo Tab Auto Farm
+-- 📂 Tạo Tabs
 local AutoFarmTab = Window:CreateTab("Auto Farm", 4483345998)
+local AutoBossTab = Window:CreateTab("Auto Boss", 4483345998)
+local TeleportTab = Window:CreateTab("Teleport", 4483345998)
 
 -- 🔘 Biến điều khiển
 _G.AutoFarm = false
+_G.AutoBoss = false
+_G.AutoSkill = false
+_G.SelectedWeapon = "Melee" -- Đổi thành "Sword" hoặc "Gun" nếu cần
 
--- 🚀 Auto Click Đánh Quái
-function autoClick()
-    while _G.AutoFarm do
-        game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("Combat", "Melee")
-        task.wait(0.2) -- Tốc độ đánh
+-- 🔄 Tự động trang bị vũ khí
+function equipWeapon()
+    local player = game.Players.LocalPlayer
+    local backpack = player.Backpack
+    for _, tool in pairs(backpack:GetChildren()) do
+        if tool:IsA("Tool") and string.find(tool.Name, _G.SelectedWeapon) then
+            player.Character.Humanoid:EquipTool(tool)
+            return
+        end
     end
 end
 
--- 🛸 Bay nhanh không rơi
-function flyNoFall()
-    local character = game.Players.LocalPlayer.Character
-    if character and character:FindFirstChild("HumanoidRootPart") then
-        local hrp = character.HumanoidRootPart
-        game:GetService("RunService").Heartbeat:Connect(function()
-            if _G.AutoFarm then
-                hrp.Velocity = Vector3.new(0, 50, 0) -- Giữ nhân vật trên cao
-            end
-        end)
+-- ⚔️ Auto Click Đánh Quái (Dùng vũ khí)
+function autoClick()
+    while _G.AutoFarm or _G.AutoBoss do
+        equipWeapon()
+        game:GetService("VirtualInputManager"):SendMouseButtonEvent(0, 0, 0, true, game, 1)
+        task.wait(0.2)
     end
+end
+
+-- 🔥 Auto Skill (Dùng chiêu thức khi đánh)
+function autoUseSkills()
+    while _G.AutoSkill do
+        game:GetService("VirtualInputManager"):SendKeyEvent(true, "Z", false, game)
+        task.wait(1)
+        game:GetService("VirtualInputManager"):SendKeyEvent(true, "X", false, game)
+        task.wait(1)
+        game:GetService("VirtualInputManager"):SendKeyEvent(true, "C", false, game)
+        task.wait(1)
+        game:GetService("VirtualInputManager"):SendKeyEvent(true, "V", false, game)
+        task.wait(1)
+    end
+end
+
+-- 🛸 Bay ổn định không nhấp nhô
+function flyStable()
+    local hrp = game.Players.LocalPlayer.Character.HumanoidRootPart
+    game:GetService("RunService").Heartbeat:Connect(function()
+        if _G.AutoFarm or _G.AutoBoss then
+            hrp.Velocity = Vector3.new(0, 0, 0)
+            hrp.CFrame = hrp.CFrame + Vector3.new(0, 20, 0)
+        end
+    end)
 end
 
 -- 🚀 Hàm dịch chuyển tức thời
@@ -44,79 +74,57 @@ function teleportTo(position)
     end
 end
 
--- 📜 Nhận nhiệm vụ tự động
-function getQuest()
+-- 👹 Tìm Boss gần nhất
+function getNearestBoss()
     local player = game.Players.LocalPlayer
-    local level = player.Data.Level.Value
-    local questNPC = nil
-    local questName = nil
-
-    if level < 15 then
-        questNPC = "Bandit Quest Giver"
-        questName = "Bandit"
-    elseif level < 30 then
-        questNPC = "Monkey Quest Giver"
-        questName = "Monkey"
-    elseif level < 50 then
-        questNPC = "Gorilla Quest Giver"
-        questName = "Gorilla"
-    elseif level < 100 then
-        questNPC = "Pirate Quest Giver"
-        questName = "Pirate"
-    else
-        print("Cấp độ chưa hỗ trợ!")
-        return
-    end
-
-    local questGiver = game.Workspace.NPCs:FindFirstChild(questNPC)
-    if questGiver then
-        teleportTo(questGiver.HumanoidRootPart.Position + Vector3.new(0, 5, 0))
-        task.wait(1)
-        game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("StartQuest", questName, 1)
-        print("Đã nhận nhiệm vụ: " .. questName)
-    end
-end
-
--- 👹 Tìm quái gần nhất
-function getNearestMob()
-    local player = game.Players.LocalPlayer
-    local closestMob = nil
+    local closestBoss = nil
     local shortestDistance = math.huge
-    for _, mob in pairs(game.Workspace.Enemies:GetChildren()) do
-        if mob:FindFirstChild("HumanoidRootPart") and mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
-            local distance = (mob.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).magnitude
+    for _, boss in pairs(game.Workspace.Enemies:GetChildren()) do
+        if boss:FindFirstChild("HumanoidRootPart") and boss:FindFirstChild("Humanoid") and boss.Humanoid.Health > 0 then
+            local distance = (boss.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).magnitude
             if distance < shortestDistance then
                 shortestDistance = distance
-                closestMob = mob
+                closestBoss = boss
             end
         end
     end
-    return closestMob
+    return closestBoss
 end
 
--- ⚔️ Tấn công quái
-function attackMob(mob)
-    flyNoFall() -- Bật bay không rơi
-    while mob and mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 and _G.AutoFarm do
-        teleportTo(mob.HumanoidRootPart.Position + Vector3.new(0, 20, 0)) -- Bay trên đầu quái
-        task.wait(0.1)
-    end
-end
-
--- 🏆 Bật/Tắt Auto Farm
-function startAutoFarm()
-    spawn(autoClick) -- Auto click đánh quái
-    while _G.AutoFarm do
-        getQuest()
-        local mob = getNearestMob()
-        if mob then
-            attackMob(mob)
+-- 🎯 Auto Boss (Tìm & đánh boss)
+function startAutoBoss()
+    spawn(autoClick)
+    while _G.AutoBoss do
+        local boss = getNearestBoss()
+        if boss then
+            teleportTo(boss.HumanoidRootPart.Position + Vector3.new(0, 20, 0))
+            task.wait(0.1)
         else
-            print("Không tìm thấy kẻ địch, chờ spawn...")
-            task.wait(1)
+            print("Không tìm thấy boss, chờ spawn...")
+            task.wait(5)
         end
     end
 end
+
+-- 📍 Teleport đến địa điểm
+TeleportTab:CreateDropdown({
+    Name = "Chọn địa điểm",
+    Options = {"Starter Island", "Jungle", "Pirate Village", "Marine Fortress", "Sky Island"},
+    CurrentOption = "Starter Island",
+    Flag = "Teleport",
+    Callback = function(option)
+        local locations = {
+            ["Starter Island"] = Vector3.new(100, 10, 100),
+            ["Jungle"] = Vector3.new(-1500, 20, 300),
+            ["Pirate Village"] = Vector3.new(-1000, 10, -1200),
+            ["Marine Fortress"] = Vector3.new(-4000, 30, 2000),
+            ["Sky Island"] = Vector3.new(-5000, 500, -1000)
+        }
+        if locations[option] then
+            teleportTo(locations[option])
+        end
+    end
+})
 
 -- 🎮 Nút bật Auto Farm
 AutoFarmTab:CreateToggle({
@@ -127,6 +135,32 @@ AutoFarmTab:CreateToggle({
         _G.AutoFarm = value
         if value then
             startAutoFarm()
+        end
+    end
+})
+
+-- 🎮 Nút bật Auto Boss
+AutoBossTab:CreateToggle({
+    Name = "Auto Boss",
+    CurrentValue = false,
+    Flag = "AutoBoss",
+    Callback = function(value)
+        _G.AutoBoss = value
+        if value then
+            startAutoBoss()
+        end
+    end
+})
+
+-- 🔥 Auto Skill Toggle
+AutoFarmTab:CreateToggle({
+    Name = "Auto Skill (Z, X, C, V)",
+    CurrentValue = false,
+    Flag = "AutoSkill",
+    Callback = function(value)
+        _G.AutoSkill = value
+        if value then
+            spawn(autoUseSkills)
         end
     end
 })
