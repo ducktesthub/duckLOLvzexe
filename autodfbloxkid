@@ -4,6 +4,7 @@ local player = game.Players.LocalPlayer
 local replicatedStorage = game:GetService("ReplicatedStorage")
 local tweenService = game:GetService("TweenService")
 
+-- 🚀 Hàm dịch chuyển
 function teleportTo(position)
     local character = player.Character
     if character and character:FindFirstChild("HumanoidRootPart") then
@@ -11,6 +12,39 @@ function teleportTo(position)
     end
 end
 
+-- 📜 Hàm nhận nhiệm vụ tự động
+function getQuest()
+    local level = player.Data.Level.Value  -- Lấy cấp độ hiện tại của người chơi
+    local questNPC = nil
+    local questName = nil
+
+    if level < 15 then
+        questNPC = "Bandit Quest Giver"
+        questName = "Bandit"
+    elseif level < 30 then
+        questNPC = "Monkey Quest Giver"
+        questName = "Monkey"
+    elseif level < 50 then
+        questNPC = "Gorilla Quest Giver"
+        questName = "Gorilla"
+    elseif level < 100 then
+        questNPC = "Pirate Quest Giver"
+        questName = "Pirate"
+    else
+        print("Cấp độ chưa hỗ trợ!")
+        return
+    end
+
+    local questGiver = game.Workspace.NPCs:FindFirstChild(questNPC)
+    if questGiver then
+        teleportTo(questGiver.HumanoidRootPart.Position + Vector3.new(0, 5, 0))
+        task.wait(1)
+        replicatedStorage.Remotes.CommF_:InvokeServer("StartQuest", questName, 1)
+        print("Đã nhận nhiệm vụ: " .. questName)
+    end
+end
+
+-- 👹 Hàm tìm quái gần nhất
 function getNearestMob()
     local closestMob = nil
     local shortestDistance = math.huge
@@ -26,15 +60,19 @@ function getNearestMob()
     return closestMob
 end
 
+-- ⚔️ Hàm tấn công quái
 function attackMob(mob)
     while mob and mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 and _G.AutoFarm do
-        teleportTo(mob.HumanoidRootPart.Position + Vector3.new(0, 5, 0))
+        -- Bay trên đầu quái để tránh bị đánh
+        teleportTo(mob.HumanoidRootPart.Position + Vector3.new(0, 20, 0))
         replicatedStorage.Remotes.CommF_:InvokeServer("Combat", "Melee")
-        task.wait(0.3)  -- Giảm lag server
+        task.wait(0.3)
     end
 end
 
+-- 🎮 Chạy Auto Farm
 while _G.AutoFarm do
+    getQuest()
     local mob = getNearestMob()
     if mob then
         attackMob(mob)
