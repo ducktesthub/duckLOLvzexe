@@ -1,19 +1,47 @@
-_G.AutoFarm = true  -- Bật auto farm (true: bật, false: tắt)
+-- 🛠️ Load thư viện GUI
+local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Orion/main/source"))()
 
-local player = game.Players.LocalPlayer
-local replicatedStorage = game:GetService("ReplicatedStorage")
-local runService = game:GetService("RunService")
+-- 🌟 Tạo GUI
+local Window = OrionLib:MakeWindow({Name = "Blox Fruits Auto Farm", HidePremium = false, SaveConfig = true, ConfigFolder = "OrionTest"})
+
+-- 📂 Tạo Tab chính
+local MainTab = Window:MakeTab({Name = "Auto Farm", Icon = "rbxassetid://4483345998", PremiumOnly = false})
+
+-- 🔘 Biến điều khiển
+_G.AutoFarm = false
+
+-- 🚀 Auto Click Đánh Quái
+function autoClick()
+    while _G.AutoFarm do
+        game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("Combat", "Melee")
+        task.wait(0.2) -- Tốc độ đánh
+    end
+end
+
+-- 🛸 Bay nhanh không rơi
+function flyNoFall()
+    local character = game.Players.LocalPlayer.Character
+    if character and character:FindFirstChild("HumanoidRootPart") then
+        local hrp = character.HumanoidRootPart
+        game:GetService("RunService").Heartbeat:Connect(function()
+            if _G.AutoFarm then
+                hrp.Velocity = Vector3.new(0, 50, 0) -- Giữ nhân vật trên cao
+            end
+        end)
+    end
+end
 
 -- 🚀 Hàm dịch chuyển tức thời
 function teleportTo(position)
-    local character = player.Character
+    local character = game.Players.LocalPlayer.Character
     if character and character:FindFirstChild("HumanoidRootPart") then
         character.HumanoidRootPart.CFrame = CFrame.new(position)
     end
 end
 
--- 📜 Hàm nhận nhiệm vụ tự động
+-- 📜 Nhận nhiệm vụ tự động
 function getQuest()
+    local player = game.Players.LocalPlayer
     local level = player.Data.Level.Value
     local questNPC = nil
     local questName = nil
@@ -39,13 +67,14 @@ function getQuest()
     if questGiver then
         teleportTo(questGiver.HumanoidRootPart.Position + Vector3.new(0, 5, 0))
         task.wait(1)
-        replicatedStorage.Remotes.CommF_:InvokeServer("StartQuest", questName, 1)
+        game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("StartQuest", questName, 1)
         print("Đã nhận nhiệm vụ: " .. questName)
     end
 end
 
--- 👹 Hàm tìm quái gần nhất
+-- 👹 Tìm quái gần nhất
 function getNearestMob()
+    local player = game.Players.LocalPlayer
     local closestMob = nil
     local shortestDistance = math.huge
     for _, mob in pairs(game.Workspace.Enemies:GetChildren()) do
@@ -60,45 +89,41 @@ function getNearestMob()
     return closestMob
 end
 
--- ⚔️ Auto click đánh quái
-function autoClick()
-    while _G.AutoFarm do
-        replicatedStorage.Remotes.CommF_:InvokeServer("Combat", "Melee")
-        task.wait(0.2) -- Tốc độ đánh
-    end
-end
-
--- 🛸 Bay nhanh không rơi
-function flyNoFall()
-    local character = player.Character
-    if character and character:FindFirstChild("HumanoidRootPart") then
-        local hrp = character.HumanoidRootPart
-        runService.Heartbeat:Connect(function()
-            if _G.AutoFarm then
-                hrp.Velocity = Vector3.new(0, 50, 0) -- Giữ nhân vật trên cao
-            end
-        end)
-    end
-end
-
--- ⚔️ Đánh quái tự động + bay trên đầu quái
+-- ⚔️ Tấn công quái
 function attackMob(mob)
-    flyNoFall() -- Bật chế độ bay
+    flyNoFall() -- Bật bay không rơi
     while mob and mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 and _G.AutoFarm do
         teleportTo(mob.HumanoidRootPart.Position + Vector3.new(0, 20, 0)) -- Bay trên đầu quái
         task.wait(0.1)
     end
 end
 
--- 🎮 Chạy Auto Farm
-spawn(autoClick) -- Auto click đánh quái
-while _G.AutoFarm do
-    getQuest()
-    local mob = getNearestMob()
-    if mob then
-        attackMob(mob)
-    else
-        print("Không tìm thấy kẻ địch, chờ spawn...")
-        task.wait(1)
+-- 🏆 Bật/Tắt Auto Farm
+function startAutoFarm()
+    spawn(autoClick) -- Auto click đánh quái
+    while _G.AutoFarm do
+        getQuest()
+        local mob = getNearestMob()
+        if mob then
+            attackMob(mob)
+        else
+            print("Không tìm thấy kẻ địch, chờ spawn...")
+            task.wait(1)
+        end
     end
 end
+
+-- 🎮 Nút bật Auto Farm
+MainTab:AddToggle({
+    Name = "Auto Farm Level",
+    Default = false,
+    Callback = function(value)
+        _G.AutoFarm = value
+        if value then
+            startAutoFarm()
+        end
+    end
+})
+
+-- ✅ Kết thúc setup GUI
+OrionLib:Init()
