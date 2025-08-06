@@ -311,7 +311,7 @@ for i, v in ipairs(Descendants) do
     end
 end
 
-ProgressText.Text = "✅ Optimization Complete!"
+ProgressText.Text = "✅ Complete!"
 TweenService:Create(ProgressBar, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
     BackgroundColor3 = Color3.fromRGB(0, 255, 127)
 }):Play()
