@@ -1,3 +1,11 @@
+if getgenv and getgenv().FPSBoost_Running then
+    warn("[FPS Boost] Script is already running. Duplicate execution detected!")
+    return
+end
+if getgenv then
+    getgenv().FPSBoost_Running = true
+end
+
 if not _G.Ignore then
     _G.Ignore = {}
 end
