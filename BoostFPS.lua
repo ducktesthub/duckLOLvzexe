@@ -71,6 +71,7 @@ local Players = game:GetService("Players")
 local Lighting = game:GetService("Lighting")
 local StarterGui = game:GetService("StarterGui")
 local MaterialService = game:GetService("MaterialService")
+local TweenService = game:GetService("TweenService")
 local ME = Players.LocalPlayer
 local CanBeEnabled = {"ParticleEmitter", "Trail", "Smoke", "Fire", "Sparkles"}
 
@@ -112,9 +113,6 @@ local function CheckIfBad(Instance)
         elseif Instance:IsA("FaceInstance") then
             if _G.Settings.Images.Invisible then
                 Instance.Transparency = 1
-                Instance.Shiny = 1
-            end
-            if _G.Settings.Images.LowDetail then
                 Instance.Shiny = 1
             end
             if _G.Settings.Images.Destroy then
@@ -202,10 +200,11 @@ end
 
 coroutine.wrap(function()
     if _G.Settings.Other["Low Water Graphics"] then
-        if not workspace:FindFirstChildOfClass("Terrain") then
-            repeat task.wait() until workspace:FindFirstChildOfClass("Terrain")
-        end
         local Terrain = workspace:FindFirstChildOfClass("Terrain")
+        if not Terrain then
+            repeat task.wait() until workspace:FindFirstChildOfClass("Terrain")
+            Terrain = workspace:FindFirstChildOfClass("Terrain")
+        end
         Terrain.WaterWaveSize = 0
         Terrain.WaterWaveSpeed = 0
         Terrain.WaterReflectance = 0
@@ -244,13 +243,12 @@ coroutine.wrap(function()
 end)()
 
 coroutine.wrap(function()
-    if _G.Settings.Other["FPS Cap"] then
-        if setfpscap then
-            if type(_G.Settings.Other["FPS Cap"]) == "number" or type(_G.Settings.Other["FPS Cap"]) == "string" then
-                setfpscap(tonumber(_G.Settings.Other["FPS Cap"]))
-            elseif _G.Settings.Other["FPS Cap"] == true then
-                setfpscap(1e6)
-            end
+    if _G.Settings.Other["FPS Cap"] and setfpscap then
+        local cap = _G.Settings.Other["FPS Cap"]
+        if type(cap) == "number" or type(cap) == "string" then
+            setfpscap(tonumber(cap))
+        elseif cap == true then
+            setfpscap(1e6)
         end
     end
 end)()
@@ -260,14 +258,63 @@ game.DescendantAdded:Connect(function(value)
     CheckIfBad(value)
 end)
 
+local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
+local TitleLabel = Instance.new("TextLabel", ScreenGui)
+local ProgressFrame = Instance.new("Frame", ScreenGui)
+local ProgressBar = Instance.new("Frame", ProgressFrame)
+local ProgressText = Instance.new("TextLabel", ProgressFrame)
+
+TitleLabel.Size = UDim2.new(0, 400, 0, 40)
+TitleLabel.Position = UDim2.new(0.5, -200, 0.5, -70)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleLabel.Font = Enum.Font.SourceSansBold
+TitleLabel.TextScaled = true
+TitleLabel.Text = "⚡ FPS Boost"
+
+ProgressFrame.Size = UDim2.new(0, 400, 0, 40)
+ProgressFrame.Position = UDim2.new(0.5, -200, 0.5, -20)
+ProgressFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+ProgressFrame.BackgroundTransparency = 0.2
+Instance.new("UICorner", ProgressFrame).CornerRadius = UDim.new(0, 10)
+
+ProgressBar.Size = UDim2.new(0, 0, 1, 0)
+ProgressBar.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+Instance.new("UICorner", ProgressBar).CornerRadius = UDim.new(0, 10)
+
+ProgressText.Size = UDim2.new(1, 0, 1, 0)
+ProgressText.BackgroundTransparency = 1
+ProgressText.TextColor3 = Color3.fromRGB(255, 255, 255)
+ProgressText.Font = Enum.Font.SourceSansBold
+ProgressText.TextScaled = true
+ProgressText.Text = "0% - Processing..."
+
 local Descendants = game:GetDescendants()
 local StartNumber = _G.WaitPerAmount or 500
 local WaitNumber = StartNumber
+local Total = #Descendants
 
-for i, v in pairs(Descendants) do
+for i, v in ipairs(Descendants) do
     CheckIfBad(v)
+    local percent = i / Total
+    local percentText = math.floor(percent * 100)
+
+    TweenService:Create(ProgressBar, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        Size = UDim2.new(percent, 0, 1, 0)
+    }):Play()
+
+    ProgressText.Text = string.format("%d%% - Processing: %d / %d", percentText, i, Total)
+
     if i == WaitNumber then
         task.wait()
         WaitNumber = WaitNumber + StartNumber
     end
 end
+
+ProgressText.Text = "✅ Optimization Complete!"
+TweenService:Create(ProgressBar, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+    BackgroundColor3 = Color3.fromRGB(0, 255, 127)
+}):Play()
+
+task.wait(1)
+ScreenGui:Destroy()
