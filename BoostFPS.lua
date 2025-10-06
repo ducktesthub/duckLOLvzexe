@@ -182,7 +182,6 @@ ProgressText.Font = Enum.Font.SourceSansBold
 ProgressText.TextScaled = true
 ProgressText.Text = "0% - Processing..."
 
--- ⚡ Tiến trình xử lý
 local Descendants = game:GetDescendants()
 local Total = #Descendants
 local BatchSize = _G.WaitPerAmount
